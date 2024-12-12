@@ -6,7 +6,6 @@ START=99
 package=$(basename $(readlink -f "$initscript"))
 prog="/usr/bin/hysteria"
 scripts_dir="/usr/share/${package}/bin"
-dnsmasq_confdir=$(uci -q  get dhcp.@dnsmasq[0].confdir || echo -n "/tmp/dnsmasq.d")
 
 _is_enabled() {
 	local instance="$1"; shift
@@ -46,9 +45,18 @@ setdown_tproxy() {
 }
 
 clean_dnsmasq_conf() {
-	local instance=${1:-"*"}
+	local instance=${1:-"*"}; shift
 
-	find  $dnsmasq_confdir -type f -name "${package}_${instance}.conf" -exec rm {} \;
+	_clean_dnsmasq_conf() {
+		local dnsmasq_instance=${1}
+
+		[ -z "${dnsmasq_instance}" ] ||
+			find $(uci_get dhcp "${dnsmasq_instance}" confdir "/tmp/dnsmasq.${dnsmasq_instance}.d") \
+				-type f -name "${package}_${instance}.conf" -exec rm {} \;
+	}
+
+	config_load dhcp
+	config_foreach _clean_dnsmasq_conf dnsmasq $@
 }
 
 get_dnsmasq_conf() {
@@ -153,7 +161,11 @@ hysteria_start_client() {
 
 		config_get server ${instance} dnsmasq_server "127.0.0.53"
 		config_get nftset ${instance} dnsmasq_nftset "4#ip#${instance}#proxy"
+		config_get dnsmasq_instance ${instance} dnsmasq_instance "@dnsmasq[0]"
 
+		dnsmasq_confdir=$(uci_get dhcp "${dnsmasq_instance}" confdir "/tmp/dnsmasq.${dnsmasq_instance}.d")
+
+		mkdir -p "$dnsmasq_confdir"
 		get_dnsmasq_conf $instance $server $nftset $(config_list_foreach ${instance} dnsmasq_domains echo) > \
 			"$dnsmasq_confdir/${package}_${instance}.conf"
 	else
@@ -170,5 +182,6 @@ start_service() {
 }
 
 service_triggers() {
+	procd_add_reload_trigger dhcp
 	procd_add_reload_trigger hysteria
 }
