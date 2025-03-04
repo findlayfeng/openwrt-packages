@@ -19,6 +19,8 @@ PKG_MAINTAINER:=Findlay Feng <i@fengch.me>
 PKG_BUILD_DEPENDS:=golang/host
 PKG_BUILD_PARALLEL:=1
 
+PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(BUILD_VARIANT)/$(PKG_NAME)-$(PKG_VERSION)
+
 include $(INCLUDE_DIR)/package.mk
 include $(TOPDIR)/feeds/packages/lang/golang/golang-values.mk
 
@@ -33,30 +35,48 @@ GO_PKG_LDFLAGS_X:= \
 
 include $(GO_INCLUDE_DIR)/golang-package.mk
 
-define Package/$(PKG_NAME)
+define Package/$(PKG_NAME)/Default
 	SECTION:=net
 	CATEGORY:=Network
 	SUBMENU:=Web Servers/Proxies
+	DEPENDS:=$(GO_ARCH_DEPENDS) \
+		+ca-bundle
 	TITLE:=A feature-packed proxy & relay tool optimized for lossy
 	URL:=https://hysteria.network
+endef
+
+define Package/$(PKG_NAME)
+	$(call Package/$(PKG_NAME)/Default)
+	VARIANT:=base
+endef
+
+define Package/$(PKG_NAME)-avx
+	$(call Package/$(PKG_NAME)/Default)
+	TITLE+=(with avx)
+	DEPENDS+=@(TARGET_x86_64)
+	VARIANT:=avx
+	PROVIDES:=$(PKG_NAME)
 endef
 
 define Package/$(PKG_NAME)-configs
 	$(call Package/$(PKG_NAME))
 	TITLE:=configs
 	DEPENDS:=$(PKG_NAME)
+	PKGARCH:=all
 	USERID:=hysteria=102:hysteria=102
 endef
 
 define Package/$(PKG_NAME)-serverd
 	$(call Package/$(PKG_NAME))
 	TITLE:=server init scripts
+	PKGARCH:=all
 	DEPENDS:=$(PKG_NAME) +$(PKG_NAME)-configs
 endef
 
 define Package/$(PKG_NAME)-clientd
 	$(call Package/$(PKG_NAME))
 	TITLE:=client init scripts
+	PKGARCH:=all
 	DEPENDS:=$(PKG_NAME) +$(PKG_NAME)-configs \
 		+kmod-nft-tproxy +kmod-nft-socket \
 		+dnsmasq-full
@@ -69,20 +89,8 @@ define Package/$(PKG_NAME)/description
 	by a customized protocol based on QUIC.
 endef
 
-define Package/$(PKG_NAME)-configs/description
+define Package/$(PKG_NAME)-avx/description
 	$(call Package/$(PKG_NAME)/description)
-endef
-
-define Package/$(PKG_NAME)-serverd/description
-	$(call Package/$(PKG_NAME)/description)
-endef
-
-define Package/$(PKG_NAME)-clientd/description
-	$(call Package/$(PKG_NAME)/description)
-endef
-
-define Build/Compile
-	$(call GoPackage/Build/Compile)
 endef
 
 define Package/$(PKG_NAME)/install
@@ -92,6 +100,10 @@ define Package/$(PKG_NAME)/install
 	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/bin/app $(1)/usr/bin/$(PKG_NAME)
 
 	$(INSTALL_CONF) ./files/sysctl-hysteria.conf $(1)/etc/sysctl.d/11-$(PKG_NAME).conf
+endef
+
+define Package/$(PKG_NAME)-avx/install
+	$(call Package/$(PKG_NAME)/install,$(1))
 endef
 
 define Package/$(PKG_NAME)-configs/install
@@ -135,8 +147,12 @@ define Package/$(PKG_NAME)-clientd/conffiles
 /etc/${PKG_NAME}/
 endef
 
-$(eval $(call GoBinPackage,$(PKG_NAME)))
+ifeq ($(BUILD_VARIANT),avx)
+	GO_AMD64:=v3
+endif
+
 $(eval $(call BuildPackage,$(PKG_NAME)))
+$(eval $(call BuildPackage,$(PKG_NAME)-avx))
 $(eval $(call BuildPackage,$(PKG_NAME)-configs))
 $(eval $(call BuildPackage,$(PKG_NAME)-serverd))
 $(eval $(call BuildPackage,$(PKG_NAME)-clientd))
