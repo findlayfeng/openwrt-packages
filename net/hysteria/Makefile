@@ -26,7 +26,8 @@ include $(TOPDIR)/feeds/packages/lang/golang/golang-values.mk
 
 GO_PKG_BUILD_PKG=$(GO_PKG)/app/v2
 GO_PKG_LDFLAGS_X:= \
-	$(GO_PKG_BUILD_PKG)/cmd.appDate=$(shell date -u '+%F.%T') \
+	$(GO_PKG_BUILD_PKG)/cmd.appToolchain=$(shell go version | sed -e 's|go version ||' -e 's| |_|' ) \
+	$(GO_PKG_BUILD_PKG)/cmd.appDate=$(shell date -u '+%FT%TZ') \
 	$(GO_PKG_BUILD_PKG)/cmd.appVersion=v$(PKG_VERSION) \
 	$(GO_PKG_BUILD_PKG)/cmd.appCommit=$(PKG_SOURCE_VERSION) \
 	$(GO_PKG_BUILD_PKG)/cmd.appPlatform=linux \
