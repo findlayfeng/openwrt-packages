@@ -4,7 +4,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=hysteria
 PKG_VERSION:=2.6.1
-PKG_RELEASE:=2
+PKG_RELEASE:=3
 
 GO_PKG:=github.com/apernet/hysteria
 
@@ -40,8 +40,7 @@ define Package/$(PKG_NAME)/Default
 	SECTION:=net
 	CATEGORY:=Network
 	SUBMENU:=Web Servers/Proxies
-	DEPENDS:=$(GO_ARCH_DEPENDS) \
-		+ca-bundle
+	DEPENDS:=+ca-bundle
 	TITLE:=A feature-packed proxy & relay tool optimized for lossy
 	URL:=https://hysteria.network
 endef
@@ -49,38 +48,39 @@ endef
 define Package/$(PKG_NAME)
 	$(call Package/$(PKG_NAME)/Default)
 	VARIANT:=base
+	DEPENDS+=$(GO_ARCH_DEPENDS)
+	PROVIDES:=$(PKG_NAME)-bin
 endef
 
 define Package/$(PKG_NAME)-avx
 	$(call Package/$(PKG_NAME)/Default)
-	TITLE+=(with avx)
-	DEPENDS+=@(TARGET_x86_64)
+	TITLE+= with avx
 	VARIANT:=avx
-	PROVIDES:=$(PKG_NAME)
+	DEPENDS+=@(x86_64)
+	PROVIDES:=$(PKG_NAME)-bin
 endef
 
 define Package/$(PKG_NAME)-configs
-	$(call Package/$(PKG_NAME))
+	$(call Package/$(PKG_NAME)/Default)
 	TITLE:=configs
-	DEPENDS:=$(PKG_NAME)
 	PKGARCH:=all
 	USERID:=hysteria=102:hysteria=102
 endef
 
-define Package/$(PKG_NAME)-serverd
-	$(call Package/$(PKG_NAME))
-	TITLE:=server init scripts
-	PKGARCH:=all
-	DEPENDS:=$(PKG_NAME) +$(PKG_NAME)-configs
-endef
-
 define Package/$(PKG_NAME)-clientd
-	$(call Package/$(PKG_NAME))
+	$(call Package/$(PKG_NAME)/Default)
 	TITLE:=client init scripts
 	PKGARCH:=all
-	DEPENDS:=$(PKG_NAME) +$(PKG_NAME)-configs \
-		+kmod-nft-tproxy +kmod-nft-socket \
-		+dnsmasq-full
+	DEPENDS:=$(PKG_NAME)-bin +$(PKG_NAME)-configs
+	PROVIDES:=$(PKG_NAME)-scripts
+endef
+
+define Package/$(PKG_NAME)-serverd
+	$(call Package/$(PKG_NAME)/Default)
+	TITLE:=server init scripts
+	PKGARCH:=all
+	DEPENDS:=$(PKG_NAME)-bin +$(PKG_NAME)-configs
+	PROVIDES:=$(PKG_NAME)-scripts
 endef
 
 define Package/$(PKG_NAME)/description
@@ -155,5 +155,5 @@ endif
 $(eval $(call BuildPackage,$(PKG_NAME)))
 $(eval $(call BuildPackage,$(PKG_NAME)-avx))
 $(eval $(call BuildPackage,$(PKG_NAME)-configs))
-$(eval $(call BuildPackage,$(PKG_NAME)-serverd))
 $(eval $(call BuildPackage,$(PKG_NAME)-clientd))
+$(eval $(call BuildPackage,$(PKG_NAME)-serverd))
