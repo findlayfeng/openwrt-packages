@@ -3,15 +3,14 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=hysteria
-PKG_VERSION:=2.6.1
+PKG_VERSION:=2.6.2
 PKG_RELEASE:=1
 
-GO_PKG:=github.com/apernet/hysteria
-
-PKG_SOURCE_PROTO:=git
-PKG_SOURCE_URL:=https://$(GO_PKG).git
-PKG_MIRROR_HASH:=65489fdac0a765d93fe87b6fc018146e8c35b0bb9f92cddfb8715486ac8a5c65
+PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_VERSION:=app/v$(PKG_VERSION)
+PKG_SOURCE_URL:=https://codeload.github.com/apernet/hysteria/tar.gz/$(PKG_SOURCE_VERSION)?
+PKG_HASH:=4699431f0bc826da2bbd3939c0a78c4e7bfc02773fc3a62b24615c37ee89b266
+PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-app-v$(PKG_VERSION)
 
 PKG_LICENSE:=MIT
 PKG_MAINTAINER:=Findlay Feng <i@fengch.me>
@@ -22,6 +21,7 @@ PKG_BUILD_PARALLEL:=1
 include $(INCLUDE_DIR)/package.mk
 include $(TOPDIR)/feeds/packages/lang/golang/golang-values.mk
 
+GO_PKG:=github.com/apernet/hysteria
 GO_PKG_BUILD_PKG=$(GO_PKG)/app/v2
 GO_PKG_LDFLAGS_X:= \
 	$(GO_PKG_BUILD_PKG)/cmd.appDate=$(shell date -u '+%F.%T') \
