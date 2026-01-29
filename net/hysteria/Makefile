@@ -1,4 +1,4 @@
-# Copyright (C) 2023 Findlay Feng <i@fengch.me>
+# Copyright (C) 2023-2026 Findlay Feng <i@fengch.me>
 
 include $(TOPDIR)/rules.mk
 
